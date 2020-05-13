@@ -131,6 +131,9 @@ struct task_struct init_task
 	INIT_KASAN(init_task)
 	INIT_LIVEPATCH(init_task)
 	INIT_TASK_SECURITY
+#ifdef CONFIG_SECCOMP
+	.seccomp	= { .filter_count = ATOMIC_INIT(0) },
+#endif
 };
 
 EXPORT_SYMBOL(init_task);
