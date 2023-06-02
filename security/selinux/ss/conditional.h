@@ -31,7 +31,7 @@ struct cond_expr {
 #define COND_NEQ	7 /* bool != bool */
 #define COND_LAST	COND_NEQ
 	__u32 expr_type;
-	__u32 bool;
+	__u32 boolean;
 	struct cond_expr *next;
 };
 
