@@ -36,7 +36,7 @@ static int cond_evaluate_expr(struct policydb *p, struct cond_expr *expr)
 			if (sp == (COND_EXPR_MAXDEPTH - 1))
 				return -1;
 			sp++;
-			s[sp] = p->bool_val_to_struct[cur->bool - 1]->state;
+			s[sp] = p->bool_val_to_struct[cur->boolean - 1]->state;
 			break;
 		case COND_NOT:
 			if (sp < 0)
@@ -388,7 +388,7 @@ static int expr_isvalid(struct policydb *p, struct cond_expr *expr)
 		return 0;
 	}
 
-	if (expr->bool > p->p_bools.nprim) {
+	if (expr->boolean > p->p_bools.nprim) {
 		printk(KERN_ERR "SELinux: conditional expressions uses unknown bool.\n");
 		return 0;
 	}
@@ -422,7 +422,7 @@ static int cond_read_node(struct policydb *p, struct cond_node *node, void *fp)
 			goto err;
 
 		expr->expr_type = le32_to_cpu(buf[0]);
-		expr->bool = le32_to_cpu(buf[1]);
+		expr->boolean = le32_to_cpu(buf[1]);
 
 		if (!expr_isvalid(p, expr)) {
 			rc = -EINVAL;
@@ -573,7 +573,7 @@ static int cond_write_node(struct policydb *p, struct cond_node *node,
 
 	for (cur_expr = node->expr; cur_expr != NULL; cur_expr = cur_expr->next) {
 		buf[0] = cpu_to_le32(cur_expr->expr_type);
-		buf[1] = cpu_to_le32(cur_expr->bool);
+		buf[1] = cpu_to_le32(cur_expr->boolean);
 		rc = put_entry(buf, sizeof(u32), 2, fp);
 		if (rc)
 			return rc;
