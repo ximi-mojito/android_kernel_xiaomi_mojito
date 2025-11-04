@@ -1,6 +1,7 @@
 config GKI_HIDDEN_GPU_CONFIGS
 	bool "Hidden GPU configuration needed for GKI"
 	select TRACE_GPU_MEM
+	select TRACE_GPU_POWER
 	help
 	  Dummy config option used to enable the hidden GPU config.
 	  These are normally selected implicitly when a module
