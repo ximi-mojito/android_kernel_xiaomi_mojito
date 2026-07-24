@@ -327,6 +327,7 @@ struct optimized_kprobe {
 	struct kprobe kp;
 	struct list_head list;	/* list for optimizing queue */
 	struct arch_optimized_insn optinsn;
+	void (*set_pc)(struct optimized_kprobe *op, struct pt_regs *regs);
 };
 
 /* Architecture dependent functions for direct jump optimization */
@@ -343,6 +344,7 @@ extern int arch_within_optimized_kprobe(struct optimized_kprobe *op,
 					unsigned long addr);
 
 extern void opt_pre_handler(struct kprobe *p, struct pt_regs *regs);
+extern void optprobe_optimized_callback(struct optimized_kprobe *op, struct pt_regs *regs);
 
 DEFINE_INSN_CACHE_OPS(optinsn);
 

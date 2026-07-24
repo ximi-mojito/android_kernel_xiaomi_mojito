@@ -394,6 +394,27 @@ void opt_pre_handler(struct kprobe *p, struct pt_regs *regs)
 }
 NOKPROBE_SYMBOL(opt_pre_handler);
 
+void optprobe_optimized_callback(struct optimized_kprobe *op, struct pt_regs *regs)
+{
+	if (kprobe_disabled(&op->kp))
+		return;
+
+	preempt_disable();
+
+	if (kprobe_running()) {
+		kprobes_inc_nmissed_count(&op->kp);
+	} else {
+		op->set_pc(op, regs);
+		__this_cpu_write(current_kprobe, &op->kp);
+		get_kprobe_ctlblk()->kprobe_status = KPROBE_HIT_ACTIVE;
+		opt_pre_handler(&op->kp, regs);
+		__this_cpu_write(current_kprobe, NULL);
+	}
+
+	preempt_enable();
+}
+NOKPROBE_SYMBOL(optprobe_optimized_callback)
+
 /* Free optimized instructions and optimized_kprobe */
 static void free_aggr_kprobe(struct kprobe *p)
 {
