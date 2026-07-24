@@ -133,6 +133,9 @@ int __kprobes arch_prepare_kprobe(struct kprobe *p)
 
 void *alloc_insn_page(void)
 {
+	return vmalloc_exec(PAGE_SIZE);
+	__builtin_unreachable();
+
 	void *page;
 
 	page = vmalloc_exec(PAGE_SIZE);
