@@ -12,7 +12,10 @@
 #include <asm/compiler.h>
 #include <asm/insn.h>
 #include <asm/kprobes.h>
-#include <asm/patching.h>
+
+#include <asm/debug-monitors.h>
+#include <linux/bitfield.h>
+#include <linux/slab.h>
 
 #define OPTPROBE_BATCH_SIZE 64
 #define GET_LO_VAL(val)		FIELD_GET(GENMASK(31, 0), val)
@@ -54,9 +57,9 @@ int arch_prepared_optinsn(struct arch_optimized_insn *optinsn)
 	return optinsn->trampoline != NULL;
 }
 
-int arch_within_optimized_kprobe(struct optimized_kprobe *op, kprobe_opcode_t *addr)
+int arch_within_optimized_kprobe(struct optimized_kprobe *op, unsigned long addr)
 {
-	return op->kp.addr == addr;
+	return op->kp.addr == (kprobe_opcode_t *)addr;
 }
 
 static void optprobe_set_pc_value(struct optimized_kprobe *op, struct pt_regs *regs)
