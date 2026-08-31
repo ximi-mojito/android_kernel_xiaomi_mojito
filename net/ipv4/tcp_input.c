@@ -6649,8 +6649,8 @@ static bool tcp_syn_flood_action(const struct sock *sk, const char *proto)
 	if (!queue->synflood_warned &&
 	    net->ipv4.sysctl_tcp_syncookies != 2 &&
 	    xchg(&queue->synflood_warned, 1) == 0)
-		pr_info("%s: Possible SYN flooding on port %d. %s.  Check SNMP counters.\n",
-			proto, sk->sk_num, msg);
+		net_info_ratelimited("%s: Possible SYN flooding on port %d. %s.  Check SNMP counters.\n",
+				     proto, sk->sk_num, msg);
 
 	return want_cookie;
 }
