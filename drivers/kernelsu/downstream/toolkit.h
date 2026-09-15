@@ -132,9 +132,10 @@ change_spoof_uname:
 	}
 
 	// so user can reset
-	if (!strcmp(release_buf, "default"))
+	constexpr char d[] = "default";
+	if (!__builtin_memcmp(release_buf, d, sizeof(d)))
 		memcpy(release_buf, original_release_buf, sizeof(release_buf));
-	if (!strcmp(version_buf, "default"))
+	if (!__builtin_memcmp(version_buf, d, sizeof(d)))
 		memcpy(version_buf, original_version_buf, sizeof(version_buf));
 
 	pr_info("toolkit: spoofing kernel to: %s - %s\n", release_buf, version_buf);
