@@ -1325,7 +1325,7 @@ struct task_struct {
 	atomic_t			tracing_graph_pause;
 #endif
 
-#ifdef CONFIG_TRACING
+#if defined(CONFIG_TRACING) || defined(CONFIG_STRIPPED_BPF_TRACE)
 	/* State flags for use by tracers: */
 	unsigned long			trace;
 

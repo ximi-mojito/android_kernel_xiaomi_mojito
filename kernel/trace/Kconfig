@@ -535,6 +535,13 @@ config BPF_EVENTS
 	help
 	  This allows the user to attach BPF programs to kprobe events.
 
+config STRIPPED_BPF_TRACE
+	bool
+	select TRACEPOINTS
+	select BPF_EVENTS
+	depends on !FTRACE
+	default y
+
 if FTRACE
 
 config PROBE_EVENTS
