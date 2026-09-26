@@ -127,6 +127,10 @@ extern void syscall_unregfunc(void);
 #define TRACEPOINTS_ENABLED
 #endif
 
+#ifdef CONFIG_STRIPPED_BPF_TRACE
+#undef TRACEPOINTS_ENABLED
+#endif
+
 #ifdef TRACEPOINTS_ENABLED
 
 /*
