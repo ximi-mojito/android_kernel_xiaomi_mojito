@@ -30,7 +30,9 @@ typedef __kernel_timer_t	timer_t;
 typedef __kernel_clockid_t	clockid_t;
 typedef __kernel_mqd_t		mqd_t;
 
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ < 202311L)
 typedef _Bool			bool;
+#endif
 
 typedef __kernel_uid32_t	uid_t;
 typedef __kernel_gid32_t	gid_t;
