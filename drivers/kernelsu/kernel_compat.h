@@ -54,6 +54,9 @@ static void *ksu_kvmalloc(size_t bytes, gfp_t flags)
 	if (p)
 		return p;
 
+	if (flags & __GFP_ZERO)
+		return vzalloc(bytes);
+
 	return vmalloc(bytes);
 }
 #define kvmalloc ksu_kvmalloc
@@ -75,15 +78,7 @@ static void *ksu_kvcalloc(size_t n, size_t size, gfp_t flags)
 	if (check_mul_overflow(n, size, &bytes))
 		return nullptr;
 
-	void *p = kmalloc(bytes, flags | __GFP_ZERO);
-	if (p)
-		return p;
-
-	p = vmalloc(bytes);
-	if (p)
-		memzero_explicit(p, bytes);
-
-	return p;
+	return kvmalloc(bytes, flags | __GFP_ZERO);
 }
 #define kvcalloc ksu_kvcalloc
 #endif
@@ -356,9 +351,8 @@ static ssize_t ksu_strscpy(char *dest, const char *src, size_t count)
 	if (!end)
 		goto no_null_term;
 
-	size_t copy_len = end - src;
+	size_t copy_len = end - src + 1; // +1 to copy \0
 	__builtin_memcpy(dest, src, copy_len);
-	dest[copy_len] = '\0';
 	return copy_len;
 
 no_null_term:
