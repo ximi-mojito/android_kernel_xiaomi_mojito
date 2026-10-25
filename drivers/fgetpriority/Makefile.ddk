@@ -1,0 +1,17 @@
+CONFIG_NAME := FGETPRIORITY
+MODULE_NAME := fgetpriority
+obj-$(CONFIG_$(CONFIG_NAME)) += $(MODULE_NAME).o
+$(MODULE_NAME)-m := main.o
+
+export CONFIG_$(CONFIG_NAME)=m
+
+MDIR := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+
+$(info -- KDIR: $(KDIR))
+$(info -- MDIR: $(MDIR))
+
+modules:
+	make -C $(KDIR) M=$(MDIR) EXTRA_CFLAGS="-w" modules
+	cp $(MDIR)/$(MODULE_NAME).ko $(KO_INSTALL_DIR)/$(KMI)_arm64_$(MODULE_NAME).ko
+clean:
+	make -C $(KDIR) M=$(MDIR) clean
