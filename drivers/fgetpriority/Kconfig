@@ -1,0 +1,9 @@
+menu "fgetpriority"
+
+config FGETPRIORITY
+	tristate "uid filter"
+	default m
+	help
+	  uid filter.
+
+endmenu
