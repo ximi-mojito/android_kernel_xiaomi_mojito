@@ -345,14 +345,25 @@ static uintptr_t compat_sys_call_table_mirror[sct_slots] __aligned(4096);
 static void print_sct(void)
 {
 	copy_from_kernel_nofault((void *)sys_call_table_mirror, native_sct, 4096);
-	uintptr_t *t = (uintptr_t *)native_sct;
+
+	uintptr_t *t = (uintptr_t *)sys_call_table_mirror;
 	for (unsigned int i = 0; i < sct_slots; i++)
 		pr_info("sys_call_table: entry: %u: 0x%lx\n", i, t[i]);
 
-	t = (uintptr_t *)sys_call_table_mirror;
-	for (unsigned int i = 0; i < sct_slots; i++)
-		pr_info("sys_call_table: entry: %u: 0x%lx\n", i, t[i]);
+	uintptr_t el0_insn_addr = kallsyms_lookup_name("el0_svc");
+	if (!el0_insn_addr)
+		return;
 
+	// TODO: create a scanner for newer kernels
+
+	uint32_t raw_insn = 0;
+	copy_from_kernel_nofault(&raw_insn, el0_insn_addr, sizeof(uint32_t));
+
+	if (!aarch64_insn_is_adrp(el0_insn_addr))
+		return;
+
+	pr_info("insn is adrp! .inst 0x%lx \n", raw_insn);
+	return;
 
 #if 0  // defined(CONFIG_COMPAT)
 	copy_from_kernel_nofault((void *)compat_sys_call_table_mirror, native_sct, 4096);
