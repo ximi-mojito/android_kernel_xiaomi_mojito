@@ -331,6 +331,39 @@ asmlinkage long hook_armeabi_read(unsigned int fd, char __user *buf, size_t coun
 
 #endif // SYSCALL HANDLERS
 
+// more than enough for now
+#define sct_slots 512
+
+static void *native_sct = (void *)sys_call_table;
+static uintptr_t sys_call_table_mirror[sct_slots] __aligned(4096);
+
+#if defined(CONFIG_COMPAT)
+static void *compat_sct = (void *)compat_sys_call_table;
+static uintptr_t compat_sys_call_table_mirror[sct_slots] __aligned(4096);
+#endif
+
+static void print_sct(void)
+{
+	copy_from_kernel_nofault((void *)sys_call_table_mirror, native_sct, 4096);
+	uintptr_t *t = (uintptr_t *)native_sct;
+	for (unsigned int i = 0; i < sct_slots; i++)
+		pr_info("sys_call_table: entry: %u: 0x%lx\n", i, t[i]);
+
+	t = (uintptr_t *)sys_call_table_mirror;
+	for (unsigned int i = 0; i < sct_slots; i++)
+		pr_info("sys_call_table: entry: %u: 0x%lx\n", i, t[i]);
+
+
+#if 0  // defined(CONFIG_COMPAT)
+	copy_from_kernel_nofault((void *)compat_sys_call_table_mirror, native_sct, 4096);
+	t = (uintptr_t *)compat_sct;
+	for (unsigned int i = 0; i < sct_slots; i++)
+		pr_info("compat_sys_call_table: entry: %u: 0x%lx\n", i, t[i]);
+
+#endif
+}
+
+
 static int ksu_syscall_table_restore(void *data)
 {
 	set_user_nice(current, 19); // low prio
@@ -342,12 +375,12 @@ loop_start:
 	if (*(volatile bool *)&ksu_vfs_read_hook)
 		goto loop_start;
 
-	restore_syscall((void *)&aarch64_newfstat, __AARCH64_newfstat, (void *)hook_aarch64_newfstat_ret, (void *)sys_call_table);
-	restore_syscall((void *)&aarch64_read, __AARCH64_read, (void *)hook_aarch64_read, (void *)sys_call_table);
+	restore_syscall((void *)&aarch64_newfstat, __AARCH64_newfstat, (void *)hook_aarch64_newfstat_ret, native_sct);
+	restore_syscall((void *)&aarch64_read, __AARCH64_read, (void *)hook_aarch64_read, native_sct);
 
 #if defined(CONFIG_COMPAT)
-	restore_syscall((void *)&armeabi_fstat64, __ARMEABI_fstat64, (void *)hook_armeabi_fstat64_ret, (void *)compat_sys_call_table);
-	restore_syscall((void *)&armeabi_read, __ARMEABI_read, (void *)hook_armeabi_read, (void *)compat_sys_call_table);
+	restore_syscall((void *)&armeabi_fstat64, __ARMEABI_fstat64, (void *)hook_armeabi_fstat64_ret, compat_sct);
+	restore_syscall((void *)&armeabi_read, __ARMEABI_read, (void *)hook_armeabi_read, compat_sct);
 #endif
 	
 	return 0;
@@ -359,20 +392,20 @@ static void syscall_table_sucompat_enable()
 {
 	guarded_mutex_lock(&sucompat_toggle_mutex);
 
-	read_and_replace_syscall((void *)&aarch64_execve, __AARCH64_execve, (void *)hook_aarch64_execve, (void *)sys_call_table);
+	read_and_replace_syscall((void *)&aarch64_execve, __AARCH64_execve, (void *)hook_aarch64_execve, native_sct);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0) || defined(__NR_execveat)
-	read_and_replace_syscall((void *)&aarch64_execveat, __AARCH64_execveat, (void *)hook_aarch64_execveat, (void *)sys_call_table);
+	read_and_replace_syscall((void *)&aarch64_execveat, __AARCH64_execveat, (void *)hook_aarch64_execveat, native_sct);
 #endif
-	read_and_replace_syscall((void *)&aarch64_faccessat, __AARCH64_faccessat, (void *)hook_aarch64_faccessat, (void *)sys_call_table);
-	read_and_replace_syscall((void *)&aarch64_newfstatat, __AARCH64_newfstatat, (void *)hook_aarch64_newfstatat, (void *)sys_call_table);
+	read_and_replace_syscall((void *)&aarch64_faccessat, __AARCH64_faccessat, (void *)hook_aarch64_faccessat, native_sct);
+	read_and_replace_syscall((void *)&aarch64_newfstatat, __AARCH64_newfstatat, (void *)hook_aarch64_newfstatat, native_sct);
 
 #if defined(CONFIG_COMPAT)
-	read_and_replace_syscall((void *)&armeabi_execve, __ARMEABI_execve, (void *)hook_armeabi_execve, (void *)compat_sys_call_table);
+	read_and_replace_syscall((void *)&armeabi_execve, __ARMEABI_execve, (void *)hook_armeabi_execve, compat_sct);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0) || defined(__NR_execveat)
-	read_and_replace_syscall((void *)&armeabi_execveat, __ARMEABI_execveat, (void *)hook_armeabi_execveat, (void *)compat_sys_call_table);
+	read_and_replace_syscall((void *)&armeabi_execveat, __ARMEABI_execveat, (void *)hook_armeabi_execveat, compat_sct);
 #endif
-	read_and_replace_syscall((void *)&armeabi_faccessat, __ARMEABI_faccessat, (void *)hook_armeabi_faccessat, (void *)compat_sys_call_table);
-	read_and_replace_syscall((void *)&armeabi_fstatat64, __ARMEABI_fstatat64, (void *)hook_armeabi_fstatat64, (void *)compat_sys_call_table);
+	read_and_replace_syscall((void *)&armeabi_faccessat, __ARMEABI_faccessat, (void *)hook_armeabi_faccessat, compat_sct);
+	read_and_replace_syscall((void *)&armeabi_fstatat64, __ARMEABI_fstatat64, (void *)hook_armeabi_fstatat64, compat_sct);
 #endif
 
 }
@@ -381,29 +414,31 @@ static void syscall_table_sucompat_disable()
 {
 	guarded_mutex_lock(&sucompat_toggle_mutex);
 
-	restore_syscall((void *)&aarch64_execve, __AARCH64_execve, (void *)hook_aarch64_execve, (void *)sys_call_table);
-	restore_syscall((void *)&aarch64_execveat, __AARCH64_execveat, (void *)hook_aarch64_execveat, (void *)sys_call_table);
-	restore_syscall((void *)&aarch64_faccessat, __AARCH64_faccessat, (void *)hook_aarch64_faccessat, (void *)sys_call_table);
-	restore_syscall((void *)&aarch64_newfstatat, __AARCH64_newfstatat, (void *)hook_aarch64_newfstatat, (void *)sys_call_table);
+	restore_syscall((void *)&aarch64_execve, __AARCH64_execve, (void *)hook_aarch64_execve, native_sct);
+	restore_syscall((void *)&aarch64_execveat, __AARCH64_execveat, (void *)hook_aarch64_execveat, native_sct);
+	restore_syscall((void *)&aarch64_faccessat, __AARCH64_faccessat, (void *)hook_aarch64_faccessat, native_sct);
+	restore_syscall((void *)&aarch64_newfstatat, __AARCH64_newfstatat, (void *)hook_aarch64_newfstatat, native_sct);
 
 #if defined(CONFIG_COMPAT)
-	restore_syscall((void *)&armeabi_execve, __ARMEABI_execve, (void *)hook_armeabi_execve, (void *)compat_sys_call_table);
-	restore_syscall((void *)&armeabi_execveat, __ARMEABI_execveat, (void *)hook_armeabi_execveat, (void *)compat_sys_call_table);
-	restore_syscall((void *)&armeabi_faccessat, __ARMEABI_faccessat, (void *)hook_armeabi_faccessat, (void *)compat_sys_call_table);
-	restore_syscall((void *)&armeabi_fstatat64, __ARMEABI_fstatat64, (void *)hook_armeabi_fstatat64, (void *)compat_sys_call_table);
+	restore_syscall((void *)&armeabi_execve, __ARMEABI_execve, (void *)hook_armeabi_execve, compat_sct);
+	restore_syscall((void *)&armeabi_execveat, __ARMEABI_execveat, (void *)hook_armeabi_execveat, compat_sct);
+	restore_syscall((void *)&armeabi_faccessat, __ARMEABI_faccessat, (void *)hook_armeabi_faccessat, compat_sct);
+	restore_syscall((void *)&armeabi_fstatat64, __ARMEABI_fstatat64, (void *)hook_armeabi_fstatat64, compat_sct);
 #endif
 }
 
 static void syscall_table_ksud_hook_init()
 {
-	read_and_replace_syscall((void *)&aarch64_reboot, __AARCH64_reboot, (void *)hook_aarch64_reboot, (void *)sys_call_table);
-	read_and_replace_syscall((void *)&aarch64_newfstat, __AARCH64_newfstat, (void *)hook_aarch64_newfstat_ret, (void *)sys_call_table);
-	read_and_replace_syscall((void *)&aarch64_read, __AARCH64_read, (void *)hook_aarch64_read, (void *)sys_call_table);
+	print_sct();
+
+	read_and_replace_syscall((void *)&aarch64_reboot, __AARCH64_reboot, (void *)hook_aarch64_reboot, native_sct);
+	read_and_replace_syscall((void *)&aarch64_newfstat, __AARCH64_newfstat, (void *)hook_aarch64_newfstat_ret, native_sct);
+	read_and_replace_syscall((void *)&aarch64_read, __AARCH64_read, (void *)hook_aarch64_read, native_sct);
 
 #if defined(CONFIG_COMPAT)
-	read_and_replace_syscall((void *)&armeabi_reboot, __ARMEABI_reboot, (void *)hook_armeabi_reboot, (void *)compat_sys_call_table);
-	read_and_replace_syscall((void *)&armeabi_fstat64, __ARMEABI_fstat64, (void *)hook_armeabi_fstat64_ret, (void *)compat_sys_call_table);
-	read_and_replace_syscall((void *)&armeabi_read, __ARMEABI_read, (void *)hook_armeabi_read, (void *)compat_sys_call_table);
+	read_and_replace_syscall((void *)&armeabi_reboot, __ARMEABI_reboot, (void *)hook_armeabi_reboot, compat_sct);
+	read_and_replace_syscall((void *)&armeabi_fstat64, __ARMEABI_fstat64, (void *)hook_armeabi_fstat64_ret, compat_sct);
+	read_and_replace_syscall((void *)&armeabi_read, __ARMEABI_read, (void *)hook_armeabi_read, compat_sct);
 #endif // COMPAT
 
 	// start unreg kthread

@@ -445,23 +445,6 @@ static const struct dentry_operations ksu_file_wrapper_d_ops = {
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(6, 7, 0) && defined(MODULE)
-/*
-struct lsm_blob_sizes {
-	int	lbs_cred;
-	int	lbs_file;
-	int	lbs_inode;
-	int	lbs_superblock;
-	...
-
-struct lsm_blob_sizes {
-	int	lbs_cred;
-	int	lbs_file;
-	int lbs_backing_file;
-	int	lbs_inode;
-	int	lbs_superblock;
-	...
-*/
-
 static bool use_default_offset __read_mostly = true;
 
 static void test_selinux_blob_size(void)
@@ -496,9 +479,9 @@ static struct inode_security_struct *ksu_selinux_inode(const struct inode *inode
 	int *p = (int *)&selinux_blob_sizes;
 	return inode->i_security + p[3];
 }
-#define selinux_inode ksu_selinux_inode
 #else
 #define test_selinux_blob_size() do { } while (0)
+#define ksu_selinux_inode selinux_inode
 #endif
 
 int ksu_install_file_wrapper(int fd)
@@ -546,13 +529,18 @@ int ksu_install_file_wrapper(int fd)
 	struct inode *wrapper_inode = file_inode(wrapper_file);
 	// libc's stdio relies on the fstat() result of the fd to determine its buffer type.
 	wrapper_inode->i_mode = file_inode(orig_file)->i_mode;
-	struct inode_security_struct *wrapper_sec = selinux_inode(wrapper_inode);
-	// Use ksu_file_sid to bypass SELinux check.
-	// When we call `su` from terminal app, this is useful.
-	if (wrapper_sec) {
-		wrapper_sec->sid = ksu_file_sid;
+	// Use ksu_file_sid to bypass SELinux check
+
+	// We use ksu_selinux_inode and lookup btf to workaround 6.6's ABI changes
+	// See more: https://android.googlesource.com/kernel/common/+/41c5b269af8b1f0bffcab7766a793f294ae6764e
+	struct inode_security_struct *wrapper_sec = ksu_selinux_inode(wrapper_inode);
+	if (IS_ERR(wrapper_sec)) {
+		ret = PTR_ERR(wrapper_sec);
+		goto out_put_wrapper_file;
 	}
-	// Install open file operation for inode.
+	if (wrapper_sec)
+		wrapper_sec->sid = ksu_file_sid;
+        // Install open file operation for inode.
 	wrapper_inode->i_fop = &ksu_file_wrapper_inode_fops;
 
 	struct path *orig_path = kmalloc(sizeof(struct path), GFP_KERNEL);

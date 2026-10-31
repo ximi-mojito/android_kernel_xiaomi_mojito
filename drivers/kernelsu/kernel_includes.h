@@ -65,6 +65,7 @@
 #include <linux/input.h>
 #include <linux/ioctl.h>
 #include <linux/jump_label.h>
+#include <linux/kallsyms.h>
 #include <linux/kernel.h>
 #include <linux/key.h>
 #include <linux/kobject.h>
