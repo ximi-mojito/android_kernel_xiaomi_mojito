@@ -369,9 +369,15 @@ static void print_sct(void)
 		return;
 
 	pr_info("insn is adrp! .inst 0x%lx \n", raw_insn);
+
+	uintptr_t pc = el0_insn_addr;	// pc
+	u32 rd = raw_insn & 0x1f; 	// reg
+
+	// target, align to 4096
+	uintptr_t tgt = (pc & ~0xFFFUL) + (long)aarch64_insn_adrp_get_offset(raw_insn);
+	pr_info("el0_svc: reg: x%u tgt: 0x%lx sys_call_table: 0x%lx\n", rd, tgt, (uintptr_t)native_sct);
 	return;
 }
-
 
 static int ksu_syscall_table_restore(void *data)
 {
