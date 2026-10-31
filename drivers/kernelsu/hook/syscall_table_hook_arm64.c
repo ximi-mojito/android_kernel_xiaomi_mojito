@@ -365,7 +365,7 @@ static void print_sct(void)
 
 	pr_info("el0_svc .inst 0x%lx \n", raw_insn);
 
-	if (!aarch64_insn_is_adrp(el0_insn_addr))
+	if (!aarch64_insn_is_adrp(raw_insn))
 		return;
 
 	pr_info("insn is adrp! .inst 0x%lx \n", raw_insn);
